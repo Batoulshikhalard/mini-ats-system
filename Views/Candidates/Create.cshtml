@@ -1,0 +1,97 @@
+﻿@model MiniATS.Models.Candidate
+
+@{
+    ViewData["Title"] = "Add Candidate";
+    var jobId = ViewBag.JobId as Guid?;
+    var jobs = ViewBag.Jobs as List<MiniATS.Models.Job>;
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>Add New Candidate</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        @if (jobId.HasValue)
+                        {
+                            <input type="hidden" name="jobId" value="@jobId" />
+                            <div class="alert alert-info">
+                                This candidate will be added to the selected job.
+                            </div>
+                        }
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Name" class="control-label"></label>
+                            <input asp-for="Name" class="form-control" required />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Email" class="control-label"></label>
+                            <input asp-for="Email" type="email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Phone" class="control-label"></label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="CurrentCompany" class="control-label"></label>
+                            <input asp-for="CurrentCompany" class="form-control" />
+                            <span asp-validation-for="CurrentCompany" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="LinkedInUrl" class="control-label">LinkedIn Profile URL</label>
+                            <input asp-for="LinkedInUrl" type="url" class="form-control" placeholder="https://linkedin.com/in/username" />
+                            <span asp-validation-for="LinkedInUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Notes" class="control-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        @if (!jobId.HasValue && jobs != null && jobs.Any())
+                        {
+                            <div class="form-group mb-3">
+                                <label>Add to Job (Optional)</label>
+                                <select name="jobId" class="form-control">
+                                    <option value="">-- Select Job --</option>
+                                    @foreach (var job in jobs)
+                                    {
+                                        <option value="@job.Id">@job.Title - @job.Department</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Candidate
+                            </button>
+                            <a href="@Url.Action("Kanban", "Dashboard", new { jobId = jobId })" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

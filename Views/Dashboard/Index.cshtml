@@ -1,0 +1,44 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h1>Welcome to MiniATS</h1>
+        <p class="lead">Your simple Applicant Tracking System</p>
+        <hr />
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-header">Jobs</div>
+            <div class="card-body">
+                <h5 class="card-title">Manage Job Postings</h5>
+                <p class="card-text">Create and manage job positions</p>
+                <a href="@Url.Action("Index", "Jobs")" class="btn btn-light">View Jobs</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-header">Candidates</div>
+            <div class="card-body">
+                <h5 class="card-title">Manage Candidates</h5>
+                <p class="card-text">Add and track candidates</p>
+                <a href="@Url.Action("Index", "Candidates")" class="btn btn-light">View Candidates</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-header">Kanban Board</div>
+            <div class="card-body">
+                <h5 class="card-title">Visual Pipeline</h5>
+                <p class="card-text">Drag and drop candidates through stages</p>
+                <a href="@Url.Action("Kanban", "Dashboard")" class="btn btn-light">View Board</a>
+            </div>
+        </div>
+    </div>
+</div>

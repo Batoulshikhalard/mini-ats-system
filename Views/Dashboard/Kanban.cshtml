@@ -1,0 +1,328 @@
+﻿@model MiniATS.ViewModels.KanbanViewModel
+
+@{
+    ViewData["Title"] = "Kanban Board";
+}
+
+<div class="container-fluid">
+    <h2>Kanban Board</h2>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" class="form-inline">
+                <div class="form-group mr-2">
+                    <label for="jobId" class="mr-2">Filter by Job:</label>
+                    <select name="jobId" id="jobId" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Jobs</option>
+                        @foreach (var job in Model.Jobs)
+                        {
+                            <option value="@job.Id" selected="@(Model.SelectedJobId == job.Id.ToString())">
+                                @job.Title - @job.Department
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="searchTerm" class="mr-2">Search Candidate:</label>
+                    <input type="text" name="searchTerm" id="searchTerm" class="form-control"
+                           value="@Model.SearchTerm" placeholder="Name or email" />
+                </div>
+                <button type="submit" class="btn btn-primary ml-2">Filter</button>
+            </form>
+        </div>
+        <div class="col-md-6 text-right">
+            <a href="@Url.Action("Create", "Candidates", new { jobId = Model.SelectedJobId })" class="btn btn-success">
+                Add Candidate
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            @TempData["Warning"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Kanban Board -->
+    <div class="row" id="kanban-board">
+        @{
+            var stages = new Dictionary<string, string>
+                {
+                { "applied", "Applied" },
+                { "screening", "Screening" },
+                { "interview", "Interview" },
+                { "offer", "Offer" },
+                { "rejected", "Rejected" }
+                };
+        }
+
+        @foreach (var stage in stages)
+        {
+            <div class="col-md">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">@stage.Value</h5>
+                        <span class="badge bg-light text-dark">@Model.Columns[stage.Key].Count</span>
+                    </div>
+                    <div class="card-body kanban-column"
+                         data-stage="@stage.Key"
+                         ondrop="drop(event)"
+                         ondragover="allowDrop(event)"
+                         ondragenter="dragEnter(event)"
+                         ondragleave="dragLeave(event)">
+
+                        @if (!Model.Columns[stage.Key].Any())
+                        {
+                            <div class="text-center text-muted p-3">
+                                No candidates
+                            </div>
+                        }
+
+                        @foreach (var item in Model.Columns[stage.Key])
+                        {
+                            <div class="card mb-2 kanban-item"
+                                 draggable="true"
+                                 data-id="@item.Id"
+                                 data-candidate="@item.CandidateName"
+                                 ondragstart="dragStart(event)"
+                                 ondragend="dragEnd(event)">
+                                <div class="card-body p-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h6 class="card-title mb-1">@item.CandidateName</h6>
+                                        @if (item.Rating.HasValue)
+                                        {
+                                            <span class="badge bg-info">@item.Rating.Value/5</span>
+                                        }
+                                    </div>
+                                    <p class="card-text small mb-1">
+                                        <strong>@item.JobTitle</strong>
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(item.LinkedInUrl))
+                                    {
+                                        <a href="@item.LinkedInUrl" target="_blank" class="small text-primary">
+                                            <i class="fab fa-linkedin"></i> LinkedIn Profile
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Track the currently dragged item
+        let draggedItem = null;
+
+        // Allow drop on columns
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        // Highlight column when dragging over
+        function dragEnter(ev) {
+            ev.preventDefault();
+            const column = ev.target.closest('.kanban-column');
+            if (column) {
+                column.classList.add('bg-light');
+            }
+        }
+
+        // Remove highlight when leaving column
+        function dragLeave(ev) {
+            const column = ev.target.closest('.kanban-column');
+            if (column) {
+                column.classList.remove('bg-light');
+            }
+        }
+
+        // Start dragging
+        function dragStart(ev) {
+            const item = ev.target.closest('.kanban-item');
+            if (item) {
+                draggedItem = item;
+                item.classList.add('dragging');
+                ev.dataTransfer.setData('text/plain', item.dataset.id);
+                ev.dataTransfer.effectAllowed = 'move';
+            }
+        }
+
+        // End dragging
+        function dragEnd(ev) {
+            const item = ev.target.closest('.kanban-item');
+            if (item) {
+                item.classList.remove('dragging');
+            }
+
+            // Remove highlights from all columns
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                col.classList.remove('bg-light');
+            });
+
+            draggedItem = null;
+        }
+
+        // Handle drop
+        function drop(ev) {
+            ev.preventDefault();
+
+            // Get the column where we dropped
+            const column = ev.target.closest('.kanban-column');
+            if (!column) return;
+
+            // Remove highlight
+            column.classList.remove('bg-light');
+
+            // Get the application ID from drag data
+            const applicationId = ev.dataTransfer.getData('text/plain');
+            if (!applicationId) return;
+
+            // Get the new stage
+            const newStage = column.dataset.stage;
+
+            // Find the dragged element
+            const draggedElement = document.querySelector(`[data-id="${applicationId}"]`);
+            if (!draggedElement) return;
+
+            // Get the original column
+            const originalColumn = draggedElement.closest('.kanban-column');
+            if (originalColumn && originalColumn.dataset.stage === newStage) {
+                return; // Dropped in same column, do nothing
+            }
+
+            // Move the element to the new column
+            column.appendChild(draggedElement);
+
+            // Send update to server
+            fetch('@Url.Action("UpdateApplicationStage", "Dashboard")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    applicationId: applicationId,
+                    newStage: newStage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update column counts
+                    updateColumnCounts();
+
+                    // Show success message (optional)
+                    console.log('Stage updated successfully');
+                } else {
+                    // Revert the move if server update failed
+                    if (originalColumn) {
+                        originalColumn.appendChild(draggedElement);
+                    }
+                    alert('Failed to update stage: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Revert the move on error
+                if (originalColumn) {
+                    originalColumn.appendChild(draggedElement);
+                }
+                alert('Error updating stage');
+            });
+        }
+
+        // Update column counts
+        function updateColumnCounts() {
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                const stage = column.dataset.stage;
+                const count = column.querySelectorAll('.kanban-item').length;
+                const badge = column.closest('.card').querySelector('.badge');
+                if (badge) {
+                    badge.textContent = count;
+                }
+            });
+        }
+
+        // Initialize drag and drop on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make all kanban items draggable
+            document.querySelectorAll('.kanban-item').forEach(item => {
+                item.setAttribute('draggable', 'true');
+
+                // Remove default browser drag image
+                item.addEventListener('dragstart', function(e) {
+                    const img = new Image();
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                });
+            });
+
+            // Prevent default drag behavior on images and links
+            document.querySelectorAll('.kanban-item a').forEach(link => {
+                link.addEventListener('dragstart', function(e) {
+                    e.preventDefault();
+                });
+            });
+        });
+
+        // Add CSS for dragging state
+        const style = document.createElement('style');
+        style.textContent = `
+            .kanban-item {
+                cursor: move;
+                transition: all 0.2s;
+                user-select: none;
+                border: 1px solid #dee2e6;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            .kanban-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+            .kanban-item.dragging {
+                opacity: 0.5;
+                transform: scale(0.95);
+            }
+            .kanban-column {
+                min-height: 500px;
+                max-height: 600px;
+                overflow-y: auto;
+                transition: background-color 0.2s;
+                padding: 10px;
+            }
+            .kanban-column.bg-light {
+                background-color: #f8f9fa !important;
+            }
+            .text-right {
+                text-align: right;
+            }
+            .ml-2 {
+                margin-left: 0.5rem;
+            }
+            .mr-2 {
+                margin-right: 0.5rem;
+            }
+            .mb-4 {
+                margin-bottom: 1.5rem;
+            }
+            .h-100 {
+                height: 100%;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+}

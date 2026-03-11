@@ -1,0 +1,113 @@
+﻿@model IEnumerable<MiniATS.Models.Job>
+
+@{
+    ViewData["Title"] = "Jobs";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2>Job Postings</h2>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create New Job
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        @if (!Model.Any())
+        {
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No jobs found. Click "Create New Job" to add your first job posting.
+                </div>
+            </div>
+        }
+        else
+        {
+            @foreach (var job in Model)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">@job.Title</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Department:</strong> @job.Department<br />
+                                <strong>Location:</strong> @job.Location<br />
+                                <strong>Status:</strong>
+                                @if (job.Status == "active")
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Closed</span>
+                                }
+                                <br />
+                                <strong>Created:</strong> @job.CreatedAt.ToString("MMM dd, yyyy")
+                            </p>
+                            <p class="card-text">@(job.Description?.Length > 100 ? job.Description.Substring(0, 100) + "..." : job.Description)</p>
+                        </div>
+                        <div class="card-footer">
+                            <a asp-action="Edit" asp-route-id="@job.Id" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a asp-controller="Dashboard" asp-action="Kanban" asp-route-jobId="@job.Id" class="btn btn-sm btn-info">
+                                <i class="fas fa-board"></i> View Candidates
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete('@job.Id', '@job.Title')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the job: <strong id="jobTitle"></strong>?</p>
+                <p class="text-danger">This will also delete all associated candidate applications!</p>
+            </div>
+            <div class="modal-footer">
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" name="id" id="deleteJobId" value="" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(jobId, jobTitle) {
+            document.getElementById('deleteJobId').value = jobId;
+            document.getElementById('jobTitle').textContent = jobTitle;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+    </script>
+}
